@@ -1,3 +1,4 @@
+const jwt = require('jsonwebtoken');
 const bcrypt = require('bcrypt');
 const pool = require('../config/db');
 
@@ -24,16 +25,32 @@ const loginUser = async (req, res) => {
         const isPasswordValid = await bcrypt.compare(password, userData.password_hash);
 
         if(!isPasswordValid) {
-            return res.status(401).json({ error: 'Invalid email or password' });
+            return res.status(401).json({ error: 'Invalid password' });
         }
 
+        const token = jwt.sign(
+            { id: userData.id, email: userData.email }, //Payload 
+            process.env.JWT_SECRET, 
+            { expiresIn: '1h' } // Token expiration
+        );
+
         // User authenticated successfully
-        res.status(200).json({ message: 'Login successful', userId: userData.id });
+        res.cookie('token', token, {
+            httpOnly: true,
+            signed: true,
+            sameSite: 'Strict',
+            maxAge: 60 * 60 * 1000, // 1 hour
+        });
+
+        res.status(200).json({ message: 'Login Successful', userId: userData.id });
+
     } catch (error) {
-        console.error('An error occurred:', error);
+        console.error(error);
         res.status(500).json({ error: 'Internal server error' });
     }
-};
+}; // End of login user function
+
+
 
 // Register Logic
 const registerUser = async (req, res) => {
@@ -102,6 +119,6 @@ const registerUser = async (req, res) => {
             return res.status(500).json({ message: 'Internal server error' });
         }
     }
-}
+}; // End of register user function
 
 module.exports = { loginUser, registerUser };
