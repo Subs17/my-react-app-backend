@@ -1,9 +1,15 @@
- const express = require('express');
- const { loginUser, registerUser } = require('../controllers/userControllers');
- const router = express.Router();
+const express = require('express');
+const { loginUser, registerUser, getUserDetails, updateProfilePicture } = require('../controllers/userControllers');
+const { cookieJwtAuth } = require('../middleware/cookieJWTAuth');
+const upload = require('../middleware/uploadMiddleware');
+const router = express.Router();
 
- // User routes
- router.post('/login', loginUser);
- router.post('/register', registerUser);
+// User POST routes
+router.post('/login', loginUser);
+router.post('/register', registerUser);
+router.post('/user/profile-picture', cookieJwtAuth, upload.single('profilePicture'), updateProfilePicture);
 
- module.exports = router;
+// User GET routes
+router.get('/user', cookieJwtAuth, getUserDetails );
+
+module.exports = router;
