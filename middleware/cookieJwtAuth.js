@@ -1,7 +1,8 @@
 const jwt = require('jsonwebtoken');
 
 exports.cookieJwtAuth = (req, res, next) => {
-    const token = req.cookies.token;
+
+    const token = req.signedCookies.access_token;
 
     if(!token){
         return res.status(401).json({ error: 'Access denied, token missing!' });
