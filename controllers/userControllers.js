@@ -1,6 +1,9 @@
 const jwt = require('jsonwebtoken');
 const bcrypt = require('bcrypt');
 const pool = require('../config/db');
+const multer = require('multer');
+// const path = require('path');
+
 
 // Login Logic 
 const loginUser = async (req, res) => {
@@ -35,13 +38,15 @@ const loginUser = async (req, res) => {
         );
 
         // User authenticated successfully
-        res.cookie('token', token, {
+        res.cookie('access_token', token, {
             httpOnly: true,
             signed: true,
-            sameSite: 'Strict',
+            secure: false,
+            sameSite: 'None',
             maxAge: 60 * 60 * 1000, // 1 hour
         });
 
+        //console.log("🔹 Setting Cookie: access_token = ", token); // ✅ Debugging cookie setting
         res.status(200).json({ message: 'Login Successful', userId: userData.id });
 
     } catch (error) {
@@ -121,4 +126,80 @@ const registerUser = async (req, res) => {
     }
 }; // End of register user function
 
-module.exports = { loginUser, registerUser };
+const getUserDetails = async (req, res) => {
+    // console.log("Cookies received in /api/v1/user: ", req.signedCookies);
+    try{
+       // Check for valid session cookies
+        if(!req.signedCookies || !req.signedCookies.access_token){
+            return res.status(401).json({ error: "Unauthorized: No valid session" });
+        }
+        // Decode JWT from cookies
+        const decoded = jwt.verify(req.signedCookies.access_token, process.env.JWT_SECRET);
+        
+        const [rows] = await pool.query(
+            'SELECT first_name, last_name, profile_picture FROM users WHERE id = ?',
+            [decoded.id]
+        );
+
+        if(rows.length === 0) {
+            return res.status(404).json({ error: 'User not found'});
+        }
+
+        const user = rows[0];
+        res.json({
+            name: `${user.first_name} ${user.last_name}`,
+            profilePicture: user.profile_picture || null
+        });
+    } catch (error){
+        console.error(error);
+        res.status(500).json({ error: 'Internal server error' });
+    }
+};
+
+const updateProfilePicture = async (req, res) => {
+      try {
+        // 1) Verify user
+        if (!req.signedCookies || !req.signedCookies.access_token) {
+          return res.status(401).json({ error: "Unauthorized: No valid session" });
+        }
+        const decoded = jwt.verify(req.signedCookies.access_token, process.env.JWT_SECRET);
+        const userId = decoded.id;
+  
+        // 2) Verify file
+        if (!req.file) {
+          return res.status(400).json({ error: "No file uploaded" });
+        }
+  
+        // 3) Build file path
+        const filePath = '/uploads/' + req.file.filename;
+  
+        // 4) Update DB
+        await pool.query(
+          'UPDATE users SET profile_picture = ? WHERE id = ?',
+          [filePath, userId]
+        );
+  
+        // 5) Now fetch the updated row so we can return the entire user object
+        const [rows] = await pool.query(
+          'SELECT first_name, last_name, profile_picture FROM users WHERE id = ?',
+          [userId]
+        );
+  
+        if (!rows.length) {
+          return res.status(404).json({ error: 'User not found' });
+        }
+  
+        // 6) Return the updated user in the response
+        const updatedUser = rows[0];
+        res.json({
+          name: `${updatedUser.first_name} ${updatedUser.last_name}`,
+          profilePicture: updatedUser.profile_picture || null
+        });
+      } catch (error) {
+        console.error("Error uploading profile picture:", error);
+        res.status(500).json({ error: "Internal server error" });
+      }
+};
+
+
+module.exports = { loginUser, registerUser, getUserDetails, updateProfilePicture };
