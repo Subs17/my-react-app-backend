@@ -5,16 +5,18 @@ const crypto = require('crypto');
 
 // Nodemailer transporter
 const transporter = nodemailer.createTransport({
-  service: 'gmail',
-  auth: {
-    user: 'elderlycareportal@gmail.com',
-    pass: 'dzcaxuvjnnyujwgu'
-  }
-});
+          host: 'smtp.gmail.com',   // e.g. 'smtp.gmail.com' for Gmail
+          port: 587,                  // or 465 if using SSL
+          secure: false,              // true if port 465, false if 587
+          auth: {
+            user: 'elderlycareportal@gmail.com',
+            pass: 'dzcaxuvjnnyujwgu'
+          },
+          tls: {
+            rejectUnauthorized: false
+          }
+        });
 
-// ──────────────────────────────────────────────────────────────────────────
-// 1. Request Password Reset (User Submits Email)
-// ──────────────────────────────────────────────────────────────────────────
 async function requestPasswordReset(req, res) {
   const { email } = req.body;
   
@@ -43,7 +45,7 @@ async function requestPasswordReset(req, res) {
       subject: 'Password Reset Request',
       html: `<p>Click <a href="${resetLink}">here</a> to reset your password. This link expires in 15 minutes.</p>`
     };
-
+    // console.log("Transporter config: ", transporter.options);
     await transporter.sendMail(mailOptions);
     return res.json({ message: "Password reset email sent." });
 
@@ -53,9 +55,7 @@ async function requestPasswordReset(req, res) {
   }
 }
 
-// ──────────────────────────────────────────────────────────────────────────
-// 2. Reset Password (User Submits New Password)
-// ──────────────────────────────────────────────────────────────────────────
+
 async function resetPassword(req, res) {
   const { token, newPassword } = req.body;
 
