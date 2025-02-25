@@ -26,10 +26,13 @@ const corsOptions ={
 app.use(cors(corsOptions)); // Enable All CORS Requests
 
 app.use(helmet({
+    crossOriginResourcePolicy: { policy: "cross-origin" },
+
     contentSecurityPolicy: {
       directives: {
         "default-src": ["'self'"],
         "frame-ancestors": ["'self'", "http://localhost:5173"],
+        "img-src": ["'self'", "data:", "blob:", "http://localhost:3000"],
       },
     },
   }));
