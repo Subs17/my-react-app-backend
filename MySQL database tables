@@ -1,0 +1,49 @@
+use elderlycare_db;
+
+create table users (
+	id INT auto_increment PRIMARY KEY, 
+    first_name varchar(100) NOT NULL, -- REQUIRED 
+    last_name varchar(100) NOT NULL, -- REQUIRED
+    email varchar(150) UNIQUE NOT NULL, -- REQUIRED
+    alt_email varchar(150), -- OPTIONAL
+    dob DATE NOT NULL, -- REQUIRED
+    gender ENUM('male', 'female', 'other') NOT NULL, -- REQUIRED
+    phone_number varchar(20) NOT NULL, -- REQUIRED
+    alt_number varchar(20), -- OPTIONAL
+    password_hash varchar(255) NOT NULL, -- REQUIRED
+    created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+);
+
+CREATE TABLE calendarEvents (
+    eventId INT AUTO_INCREMENT PRIMARY KEY,
+    user_id INT NOT NULL,
+    title VARCHAR(255) NOT NULL,
+    eventDescr TEXT NULL,
+    event_date DATE NOT NULL,
+    event_time TIME NOT NULL,
+    created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+    updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
+    FOREIGN KEY (user_id) REFERENCES users(id) ON DELETE CASCADE
+);
+
+CREATE TABLE archives (
+  id INT AUTO_INCREMENT PRIMARY KEY,
+  user_id INT NOT NULL,
+  parent_id INT NULL,
+  name VARCHAR(255) NOT NULL,
+  is_folder BOOLEAN NOT NULL DEFAULT false,
+  file_path VARCHAR(255) NULL,
+  file_size BIGINT NULL,
+  file_type VARCHAR(50) NULL,
+  date_modified DATETIME NULL,
+  created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
+  updated_at DATETIME DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP
+);
+
+CREATE TABLE password_reset_tokens (
+    id INT PRIMARY KEY AUTO_INCREMENT,
+    email VARCHAR(255) NOT NULL,
+    token VARCHAR(255) NOT NULL,
+    expires_at DATETIME NOT NULL,
+    FOREIGN KEY (email) REFERENCES users(email) ON DELETE CASCADE
+);
