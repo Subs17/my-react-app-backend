@@ -7,6 +7,8 @@ const morgan = require('morgan');
 const rateLimit = require('express-rate-limit');
 const userRoutes = require('./routes/userRoutes'); // Import user routes
 const eventRoutes = require('./routes/eventRoutes'); // Import event routes
+const archiveRoutes = require('./routes/archiveRoutes'); // import archive routes
+const authRoutes = require('./routes/authRoutes');
 const pool = require('./config/db');
 require('dotenv').config();
 
@@ -23,15 +25,21 @@ const corsOptions ={
 // Middleware to parse incoming requests
 app.use(cors(corsOptions)); // Enable All CORS Requests
 
-app.use(helmet());
+app.use(helmet({
+    contentSecurityPolicy: {
+      directives: {
+        "default-src": ["'self'"],
+        "frame-ancestors": ["'self'", "http://localhost:5173"],
+      },
+    },
+  }));
 app.use(morgan('dev'));
 app.use(bodyParser.json()); // Parse JSON bodies (as sent by API clients)
 
 app.use(cookieParser(process.env.COOKIE_SECRET));
 
-app.use('/uploads', express.static('uploads', {
-    maxAge: '1h',
-}));
+app.use('/uploads/profilepictures', express.static('uploads/profilepictures'));
+app.use('/uploads/archives', express.static('uploads/archives'));
 
 // Rate limiting
 const limiter = rateLimit({
@@ -48,6 +56,8 @@ app.use((req, res, next) => {
 
 app.use('/api/v1', userRoutes); // Use user routes
 app.use('/api/v1', eventRoutes); // Use event routes
+app.use('/api/v1', archiveRoutes);
+app.use('/api/v1/auth', authRoutes);
 
 // Start server 
 pool.query('SELECT 1')
