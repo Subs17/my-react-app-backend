@@ -2,6 +2,7 @@ const jwt = require('jsonwebtoken');
 const bcrypt = require('bcrypt');
 const pool = require('../config/db');
 const multer = require('multer');
+const nodemailer = require('nodemailer');
 // const path = require('path');
 
 
@@ -42,7 +43,7 @@ const loginUser = async (req, res) => {
             httpOnly: true,
             signed: true,
             secure: false,
-            sameSite: 'None',
+            sameSite: 'Lax',
             maxAge: 60 * 60 * 1000, // 1 hour
         });
 
@@ -60,48 +61,53 @@ const loginUser = async (req, res) => {
 // Register Logic
 const registerUser = async (req, res) => {
     console.log('Request received:', req.body);
-    //res.send('Request received!');
 
-    const { firstName, 
-            lastName, 
-            email,
-            altemail,
-            dob,
-            gender,
-            phone,
-            altPhone, 
-            password 
-        } = req.body;
+    const {
+        firstName, 
+        lastName, 
+        email,
+        altemail,
+        dob,
+        gender,
+        phone,
+        altPhone, 
+        password 
+    } = req.body;
 
-        // Defined required fields
-        const requiredFields = {
-          firstName: 'First Name',
-          lastName: 'Last Name',
-          email: 'Email',
-          dob: 'Date of Birth',
-          gender: 'Gender',
-          phone: 'Phone Number',
-          password: 'Password',
-        };
+    // Defined required fields
+    const requiredFields = {
+      firstName: 'First Name',
+      lastName: 'Last Name',
+      email: 'Email',
+      dob: 'Date of Birth',
+      gender: 'Gender',
+      phone: 'Phone Number',
+      password: 'Password',
+    };
 
-        // Identify missing required fields
-        const missingFields = Object.keys(requiredFields).filter(
-            (field) => !req.body[field]
-        );
+    // Identify missing required fields
+    const missingFields = Object.keys(requiredFields).filter(
+        (field) => !req.body[field]
+    );
 
-    if(missingFields.length > 0) {
-        const missingFieldNames = missingFields.map((key) => requiredFields[key]).join(', ');
-        return res.status(400).json({ error: `Missing required fields: ${missingFieldNames}` });
+    if (missingFields.length > 0) {
+        const missingFieldNames = missingFields
+          .map((key) => requiredFields[key])
+          .join(', ');
+        return res.status(400).json({
+          error: `Missing required fields: ${missingFieldNames}`
+        });
     }
 
     try {
-
-        // Hash the password
+        // 1) Hash the password
         const hashedPassword = await bcrypt.hash(password, 10);
 
-        // Insert user into the database
+        // 2) Insert user into the database
         const [result] = await pool.query(
-            'INSERT INTO users (first_name, last_name, email, alt_email, dob, gender, phone_number, alt_number, password_hash) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)', 
+            `INSERT INTO users 
+             (first_name, last_name, email, alt_email, dob, gender, phone_number, alt_number, password_hash)
+             VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)`, 
             [
                 firstName, 
                 lastName, 
@@ -115,9 +121,45 @@ const registerUser = async (req, res) => {
             ]
         );
 
-        res.status(201).json({ message: 'User created successfully', userId: result.insertId });
+        // 3) Send welcome email
+        // Create a Nodemailer transporter
+        const transporter = nodemailer.createTransport({
+          host: 'smtp.gmail.com',   // e.g. 'smtp.gmail.com' for Gmail
+          port: 587,                  // or 465 if using SSL
+          secure: false,              // true if port 465, false if 587
+          auth: {
+            user: 'elderlycareportal@gmail.com',
+            pass: 'dzcaxuvjnnyujwgu'
+          },
+          tls: {
+            rejectUnauthorized: false
+          }
+        });
+
+        // Build mail options
+        const mailOptions = {
+          from: '"Elderly Care Portal" <no-reply@elderlycare.com>',
+          to: email,
+          subject: 'Welcome to Elderly Care Portal!',
+          text: `Hello ${firstName}, welcome to our portal!`,
+          html: `
+            <h1>Welcome, ${firstName}!</h1>
+            <p>Thank you for joining the Elderly Care Portal.</p>
+            <p>We hope you have a great experience!</p>
+          `
+        };
+
+        // Send the email
+        await transporter.sendMail(mailOptions);
+
+        // 4) Return success
+        res.status(201).json({
+          message: 'User created successfully',
+          userId: result.insertId
+        });
+
     } catch (error) {
-        if(error.code === 'ER_DUP_ENTRY') {
+        if (error.code === 'ER_DUP_ENTRY') {
             return res.status(409).json({ message: 'Email already exists' });
         } else {
             console.error(error);
@@ -171,7 +213,7 @@ const updateProfilePicture = async (req, res) => {
         }
   
         // 3) Build file path
-        const filePath = '/uploads/' + req.file.filename;
+        const filePath = '/uploads/profilepictures/' + req.file.filename;
   
         // 4) Update DB
         await pool.query(
