@@ -9,8 +9,8 @@ const transporter = nodemailer.createTransport({
           port: 587,                  // or 465 if using SSL
           secure: false,              // true if port 465, false if 587
           auth: {
-            user: 'elderlycareportal@gmail.com',
-            pass: 'dzcaxuvjnnyujwgu'
+            user: 'USER@EMAIL.COM',
+            pass: 'USERPASSWORD'
           },
           tls: {
             rejectUnauthorized: false
