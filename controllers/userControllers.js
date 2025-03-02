@@ -128,8 +128,8 @@ const registerUser = async (req, res) => {
           port: 587,                  // or 465 if using SSL
           secure: false,              // true if port 465, false if 587
           auth: {
-            user: 'elderlycareportal@gmail.com',
-            pass: 'dzcaxuvjnnyujwgu'
+            user: 'USER@EMAIL.COM',
+            pass: 'PASSWORD'
           },
           tls: {
             rejectUnauthorized: false
